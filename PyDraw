@@ -164,7 +164,7 @@ class PyDraw:
         self.canvas.itemconfig(self.text1, state=new_state)
         self.canvas.itemconfig(self.text2, state=new_state)
 
-        self.root.after(1000, self.blink_text)
+        self.root.after(500, self.blink_text)
 
 
 if __name__ == "__main__":
