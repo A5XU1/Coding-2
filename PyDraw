@@ -1,4 +1,4 @@
-from tkinter import Tk, Canvas, NORMAL, HIDDEN
+from tkinter import *
 
 
 class PyDraw:
