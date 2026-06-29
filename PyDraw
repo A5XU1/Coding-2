@@ -1,4 +1,4 @@
-from tkinter import *
+from tkinter import Tk, Canvas, NORMAL, HIDDEN
 
 
 class PyDraw:
@@ -11,27 +11,35 @@ class PyDraw:
         self.canvas_height = 490
         self.toolbar_height = 82
 
-        self.x = self.canvas_width / 2
-        self.y = self.canvas_height / 2 + self.toolbar_height / 2
+        self.center_x = self.canvas_width / 2
+        self.center_y = self.canvas_height / 2
 
-        self.pen_color = 0
+        self.pen_x = 0
+        self.pen_y = 0
+        self.pen_color_index = 0
 
         self.colors = [
-            "#000000", "#FFFFFF", "#FF0000",
-            "#FF8000", "#FFFF00", "#00FF00",
-            "#00FFFF", "#0080FF", "#8000FF"
+            "#000000",
+            "#FFFFFF",
+            "#FF0000",
+            "#FF8000",
+            "#FFFF00",
+            "#00FF00",
+            "#00FFFF",
+            "#0080FF",
+            "#8000FF",
         ]
 
+        self.effects = []
         self.create_canvas()
-        self.set_color(0)
-        self.blink_text()
+        self.root.after(500, self.blink_text)
 
     def create_canvas(self):
         self.canvas = Canvas(
             self.root,
             width=self.canvas_width,
             height=self.canvas_height,
-            bg="white"
+            bg="#FFFFFF"
         )
         self.canvas.pack()
 
@@ -40,106 +48,90 @@ class PyDraw:
             self.canvas_width + 5,
             self.toolbar_height,
             fill="#F0F0F0",
-            outline="black"
+            outline="#000000"
         )
 
-        self.pen = self.create_pen()
-
-        self.effects = []
-
-        for i, color in enumerate(self.colors):
-            x = 25 + (i + 1 + (i > 1)) * 43
-
-            self.canvas.create_rectangle(
-                x - 15, 10,
-                x + 18, 43,
-                fill=color,
-                outline="black"
-            )
-
-            effect = self.canvas.create_rectangle(
-                x - 20, 5,
-                x + 23, 48,
-                outline="black"
-            )
-
-            self.effects.append(effect)
-
-            self.canvas.create_text(
-                x, 62,
-                text=str(i + 1),
-                fill="black"
-            )
+        self.create_color_toolbar()
+        self.create_pen()
 
         self.text1 = self.canvas.create_text(
-            self.canvas_width / 2 + 230,
+            self.center_x + 230,
             26,
             text="Move using the arrow keys"
         )
 
         self.text2 = self.canvas.create_text(
-            self.canvas_width / 2 + 230,
+            self.center_x + 230,
             54,
-            text='Press "space" to draw'
+            text='Press "space" to draw',
+            fill="#000000"
         )
 
         self.canvas.bind_all("<Key>", self.control)
 
-    def create_pen(self):
-        color = self.colors[self.pen_color]
+    def create_color_toolbar(self):
+        for index, color in enumerate(self.colors):
+            x = 25 + (index + 1) * 43
 
-        pen = self.canvas.create_rectangle(
+            if index >= 2:
+                x += 43
+
+            self.canvas.create_rectangle(
+                x - 15, 10,
+                x + 18, 43,
+                fill=color,
+                outline="#000000"
+            )
+
+            effect = self.canvas.create_rectangle(
+                x - 20, 5,
+                x + 23, 48,
+                outline="#000000",
+                state=HIDDEN
+            )
+
+            self.effects.append(effect)
+
+            self.canvas.create_text(
+                x,
+                62,
+                text=str(index + 1),
+                fill="#000000"
+            )
+
+        self.update_selected_color()
+
+    def create_pen(self):
+        color = self.colors[self.pen_color_index]
+
+        self.pen = self.canvas.create_rectangle(
             -3, -3, 6, 6,
             fill=color,
             outline=color
         )
 
-        self.canvas.move(pen, self.x, self.y)
-        return pen
-
-    def set_color(self, index):
-        self.pen_color = index
-        color = self.colors[index]
-
-        self.canvas.itemconfig(
+        self.canvas.move(
             self.pen,
-            fill=color,
-            outline=color
+            self.center_x + self.pen_x,
+            self.center_y + self.pen_y + self.toolbar_height / 2
         )
 
-        for i, effect in enumerate(self.effects):
-            self.canvas.itemconfig(
-                effect,
-                state=NORMAL if i == index else HIDDEN
-            )
+    def update_selected_color(self):
+        color = self.colors[self.pen_color_index]
 
-    def move_pen(self, dx, dy):
-        new_x = self.x + dx
-        new_y = self.y + dy
+        if hasattr(self, "pen"):
+            self.canvas.itemconfig(self.pen, fill=color, outline=color)
 
-        min_x = self.canvas_width / 2 - 390
-        max_x = self.canvas_width / 2 + 390
-        min_y = self.canvas_height / 2 + self.toolbar_height / 2 - 200
-        max_y = self.canvas_height / 2 + self.toolbar_height / 2 + 200
-
-        if min_x <= new_x <= max_x and min_y <= new_y <= max_y:
-            self.canvas.move(self.pen, dx, dy)
-            self.x = new_x
-            self.y = new_y
-
-    def draw(self):
-        self.canvas.delete(self.text1)
-        self.canvas.delete(self.text2)
-        self.pen = self.create_pen()
+        for index, effect in enumerate(self.effects):
+            state = NORMAL if index == self.pen_color_index else HIDDEN
+            self.canvas.itemconfig(effect, state=state)
 
     def control(self, event):
         key = event.keysym
 
-        if key.isdigit():
-            number = int(key)
-
-            if 1 <= number <= 9:
-                self.set_color(number - 1)
+        if key in "123456789":
+            self.pen_color_index = int(key) - 1
+            self.update_selected_color()
 
         elif key == "Up":
             self.move_pen(0, -10)
@@ -156,10 +148,23 @@ class PyDraw:
         elif key == "space":
             self.draw()
 
-    def blink_text(self):
-        state = self.canvas.itemcget(self.text1, "state")
+    def move_pen(self, dx, dy):
+        new_x = self.pen_x + dx
+        new_y = self.pen_y + dy
 
-        new_state = HIDDEN if state == "normal" else NORMAL
+        if -390 <= new_x <= 390 and -200 <= new_y <= 200:
+            self.pen_x = new_x
+            self.pen_y = new_y
+            self.canvas.move(self.pen, dx, dy)
+
+    def draw(self):
+        self.canvas.delete(self.text1)
+        self.canvas.delete(self.text2)
+        self.create_pen()
+
+    def blink_text(self):
+        current_state = self.canvas.itemcget(self.text1, "state")
+        new_state = HIDDEN if current_state == "normal" else NORMAL
 
         self.canvas.itemconfig(self.text1, state=new_state)
         self.canvas.itemconfig(self.text2, state=new_state)
